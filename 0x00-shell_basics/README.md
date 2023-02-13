@@ -1,1 +1,1 @@
-shell basic project
+shell basics update
