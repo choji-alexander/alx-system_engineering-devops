@@ -1,36 +1,43 @@
-mport requests
+#!/usr/bin/python3
+"""Queries the Reddit API and
+prints the titles of the first
+10 hot posts listed for a given
+subreddit.
+"""
+import requests
+
 
 def top_ten(subreddit):
-    # Reddit API endpoint for hot posts in a subreddit
-    url = f'https://www.reddit.com/r/{subreddit}/hot.json?limit=10'
-    
-    # Set a custom User-Agent to avoid Too Many Requests errors
-    headers = {'User-Agent': 'my_bot/0.1'}
-    
-    try:
-        # Send GET request to the Reddit API
-        response = requests.get(url, headers=headers, allow_redirects=False)
-        response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
-        
-        # Parse the JSON response
-        data = response.json()
-        
-        # Extract and print titles of the first 10 hot posts
-        for post in data['data']['children']:
-            print(post['data']['title'])
-    
-    except requests.exceptions.HTTPError as errh:
-        # Handle HTTP errors (4xx or 5xx)
-        print(f"HTTP Error: {errh}")
-        return None
-    
-    except requests.exceptions.RequestException as err:
-        # Handle other request exceptions
-        print(f"Request Exception: {err}")
-        return None
+    """Prints the titles of the first
+    10 hot posts listed for a given
+    subreddit.
+    """
+    # Set the Default URL strings
+    base_url = 'https://www.reddit.com'
+    api_uri = '{base}/r/{subreddit}/hot.json'.format(base=base_url,
+                                                     subreddit=subreddit)
 
-# Example usage:
-subreddit_name = 'python'
-print(f"Top 10 hot posts in '{subreddit_name}':")
-top_ten(subreddit_name)
+    # Set an User-Agent
+    user_agent = {'User-Agent': 'Python/requests'}
 
+    # Set the Query Strings to Request
+    payload = {'limit': '10'}
+
+    # Get the Response of the Reddit API
+    res = requests.get(api_uri, headers=user_agent,
+                       params=payload, allow_redirects=False)
+
+    # Checks if the subreddit is invalid
+    if res.status_code in [302, 404]:
+        print('None')
+    else:
+        res_json = res.json()
+
+        if res_json.get('data') and res_json.get('data').get('children'):
+            # Get the 10 hot posts of the subreddit
+            hot_posts = res_json.get('data').get('children')
+
+            # Print each hot post title
+            for post in hot_posts:
+                if post.get('data') and post.get('data').get('title'):
+                    print(post.get('data').get('title'))

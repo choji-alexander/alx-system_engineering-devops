@@ -1,52 +1,55 @@
-mport requests
-from collections import Counter
+#!/usr/bin/python3
+"""Function to count words in all hot posts of a given Reddit subreddit."""
+import requests
 
-def count_words(subreddit, word_list, after=None, counts=None):
-    # Initialize the counts and subreddit name on the first call
-    if counts is None:
-        counts = Counter()
-        subreddit_name = subreddit.lower()
 
-    # Reddit API endpoint for hot posts in a subreddit
-    url = f'https://www.reddit.com/r/{subreddit}/hot.json?limit=100&after={after}' if after else f'https://www.reddit.com/r/{subreddit}/hot.json?limit=100'
+def count_words(subreddit, word_list, instances={}, after="", count=0):
+    """Prints counts of given words found in hot posts of a given subreddit.
 
-    # Set a custom User-Agent to avoid Too Many Requests errors
-    headers = {'User-Agent': 'my_bot/0.1'}
-
+    Args:
+        subreddit (str): The subreddit to search.
+        word_list (list): The list of words to search for in post titles.
+        instances (obj): Key/value pairs of words/counts.
+        after (str): The parameter for the next page of the API results.
+        count (int): The parameter of results matched thus far.
+    """
+    url = "https://www.reddit.com/r/{}/hot/.json".format(subreddit)
+    headers = {
+        "User-Agent": "linux:0x16.api.advanced:v1.0.0 (by /u/bdov_)"
+    }
+    params = {
+        "after": after,
+        "count": count,
+        "limit": 100
+    }
+    response = requests.get(url, headers=headers, params=params,
+                            allow_redirects=False)
     try:
-        # Send GET request to the Reddit API
-        response = requests.get(url, headers=headers, allow_redirects=False)
-        response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
+        results = response.json()
+        if response.status_code == 404:
+            raise Exception
+    except Exception:
+        print("")
+        return
 
-        # Parse the JSON response
-        data = response.json()
+    results = results.get("data")
+    after = results.get("after")
+    count += results.get("dist")
+    for c in results.get("children"):
+        title = c.get("data").get("title").lower().split()
+        for word in word_list:
+            if word.lower() in title:
+                times = len([t for t in title if t == word.lower()])
+                if instances.get(word) is None:
+                    instances[word] = times
+                else:
+                    instances[word] += times
 
-        # Extract and count keywords in the titles of the current page
-        for post in data['data']['children']:
-            title = post['data']['title'].lower()
-            for word in word_list:
-                if word.lower() in title:
-                    counts[word.lower()] += 1
-
-        # Recursively call the function with the 'after' parameter for the next page
-        if data['data']['after']:
-            count_words(subreddit, word_list, after=data['data']['after'], counts=counts)
-        else:
-            # Print the results in descending order by count and alphabetically by word
-            sorted_counts = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
-            for word, count in sorted_counts:
-                print(f"{word}: {count}")
-
-    except requests.exceptions.HTTPError as errh:
-        # Handle HTTP errors (4xx or 5xx)
-        print(f"HTTP Error: {errh}")
-
-    except requests.exceptions.RequestException as err:
-        # Handle other request exceptions
-        print(f"Request Exception: {err}")
-
-# Example usage:
-subreddit_name = 'python'
-keywords = ['python', 'java', 'javascript']
-count_words(subreddit_name, keywords)
-
+    if after is None:
+        if len(instances) == 0:
+            print("")
+            return
+        instances = sorted(instances.items(), key=lambda kv: (-kv[1], kv[0]))
+        [print("{}: {}".format(k, v)) for k, v in instances]
+    else:
+        count_words(subreddit, word_list, instances, after, count)
