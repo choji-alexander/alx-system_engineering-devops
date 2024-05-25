@@ -1,3 +1,4 @@
-#!/usr/bin/env bash
-# Creates a new 4096-byte RSA key pair named holberton.
-ssh-keygen -f school -b 4096 -N betty
+#!/bin/bash
+
+# Generate an RSA key pair
+ssh-keygen -t rsa -b 4096 -f school -N "betty"
