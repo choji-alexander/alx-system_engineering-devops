@@ -6,38 +6,44 @@ subreddit.
 """
 import requests
 
-
 def top_ten(subreddit):
-    """Prints the titles of the first
-    10 hot posts listed for a given
-    subreddit.
-    """
-    # Set the Default URL strings
-    base_url = 'https://www.reddit.com'
-    api_uri = '{base}/r/{subreddit}/hot.json'.format(base=base_url,
-                                                     subreddit=subreddit)
+  """Prints the titles of the top 10 hot posts from a subreddit.
 
-    # Set an User-Agent
-    user_agent = {'User-Agent': 'Python/requests'}
+  Args:
+      subreddit: The name of the subreddit to query.
+  """
 
-    # Set the Query Strings to Request
-    payload = {'limit': '10'}
+  # Base URL for hot posts
+  url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=10"
 
-    # Get the Response of the Reddit API
-    res = requests.get(api_uri, headers=user_agent,
-                       params=payload, allow_redirects=False)
+  # Set a custom User-Agent header to avoid throttling
+  headers = {"User-Agent": "MyCoolScript/0.0.1"}
 
-    # Checks if the subreddit is invalid
-    if res.status_code in [302, 404]:
-        print('None')
+  try:
+    # Send GET request without following redirects
+    response = requests.get(url, allow_redirects=False, headers=headers)
+    response.raise_for_status()  # Raise an exception for non-200 status codes
+
+    # Parse JSON response
+    data = response.json()
+
+    # Check for valid subreddit data (presence of 'data' key)
+    if 'data' in data and data['data']:
+      posts = data['data']['children']
+      for post in posts:
+        print(post['data']['title'])
     else:
-        res_json = res.json()
+      print(None)
 
-        if res_json.get('data') and res_json.get('data').get('children'):
-            # Get the 10 hot posts of the subreddit
-            hot_posts = res_json.get('data').get('children')
+  except requests.exceptions.RequestException:
+    # Handle any request errors (e.g., network issues)
+    print(None)
 
-            # Print each hot post title
-            for post in hot_posts:
-                if post.get('data') and post.get('data').get('title'):
-                    print(post.get('data').get('title'))
+# Example usage (assuming 1-main.py exists in the same directory)
+if __name__ == "__main__":
+  import sys
+
+  if len(sys.argv) < 2:
+    print("Please pass an argument for the subreddit to search.")
+  else:
+    top_ten(sys.argv[1])

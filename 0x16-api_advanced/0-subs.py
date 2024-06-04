@@ -9,26 +9,47 @@ the function should return 0.
 """
 import requests
 
-
 def number_of_subscribers(subreddit):
-    """Returns the total number of subscribers
-    for a given subreddit.
-    """
-    # Set the Default URL strings
-    base_url = 'https://www.reddit.com'
-    api_uri = '{base}/r/{subreddit}/about.json'.format(base=base_url,
-                                                       subreddit=subreddit)
+  """Queries the Reddit API for the number of subscribers of a subreddit.
 
-    # Set an User-Agent
-    user_agent = {'User-Agent': 'Python/requests'}
+  Args:
+      subreddit: The name of the subreddit to query.
 
-    # Get the Response of the Reddit API
-    res = requests.get(api_uri, headers=user_agent,
-                       allow_redirects=False)
+  Returns:
+      The number of subscribers for the subreddit, or 0 if the subreddit is invalid.
+  """
 
-    # Checks if the subreddit is invalid
-    if res.status_code in [302, 404]:
-        return 0
+  # Base URL for subreddit information
+  url = f"https://www.reddit.com/r/{subreddit}/about.json?limit=0"
 
-    # Returns the total subscribers of the subreddit
-    return res.json().get('data').get('subscribers')
+  # Set a custom User-Agent header to avoid throttling
+  headers = {"User-Agent": "MyCoolScript/0.0.1"}
+
+  try:
+    # Send GET request without following redirects
+    response = requests.get(url, allow_redirects=False, headers=headers)
+    response.raise_for_status()  # Raise an exception for non-200 status codes
+
+    # Parse JSON response
+    data = response.json()
+
+    # Check for valid subreddit data (presence of 'data' key)
+    if 'data' in data and data['data']:
+      return data['data']['subscribers']
+    else:
+      return 0
+
+  except requests.exceptions.RequestException:
+    # Handle any request errors (e.g., network issues)
+    return 0
+
+# Example usage (assuming 0-main.py exists in the same directory)
+if __name__ == "__main__":
+  import sys
+
+  if len(sys.argv) < 2:
+    print("Please pass an argument for the subreddit to search.")
+  else:
+    subreddit = sys.argv[1]
+    subscribers = number_of_subscribers(subreddit)
+    print(f"{subreddit}: {subscribers}")
